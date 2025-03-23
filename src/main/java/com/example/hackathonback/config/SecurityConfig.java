@@ -1,5 +1,3 @@
-package com.example.hackathonback.config;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -13,10 +11,11 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/git/repos", "/api/git/select").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/git/**").authenticated() // 이제 인증 필요
+                        .anyRequest().permitAll()
                 )
-                .csrf(csrf -> csrf.disable()) // 여기서 람다 사용으로 경고 제거
+                .oauth2Login(Customizer.withDefaults()) // OAuth 로그인 활성화
+                .csrf(csrf -> csrf.disable())
                 .build();
     }
 }
