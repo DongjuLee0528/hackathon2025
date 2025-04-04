@@ -15,3 +15,5 @@ public class UserController {
                 "아이디: " + principal.getAttribute("username");
     }
 }
+
+

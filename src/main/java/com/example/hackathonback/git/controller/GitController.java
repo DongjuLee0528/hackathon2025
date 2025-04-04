@@ -2,6 +2,7 @@ package com.example.hackathonback.git.controller;
 
 import com.example.hackathonback.git.dto.GitRepoDto;
 import com.example.hackathonback.git.service.GitService;
+import com.example.hackathonback.user.service.UserService; // ✅ 사용자 서비스 추가
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,10 +14,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/git")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // 프론트에서 호출할 경우 CORS 허용
+@CrossOrigin(origins = "*")
 public class GitController {
 
     private final GitService gitService;
+    private final UserService userService; // ✅ 생성자 주입
 
     @GetMapping("/repos")
     public List<GitRepoDto> getUserRepos(@RequestParam String provider, @RequestParam String token) {
@@ -29,16 +31,13 @@ public class GitController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
 
-        // 사용자 식별 정보 추출 (GitHub 또는 GitLab 기준)
+        // 이메일 기반 사용자 식별
         String email = oauth2User.getAttribute("email");
-        String username = oauth2User.getAttribute("login"); // GitHub 기준
-        if (username == null) {
-            username = oauth2User.getAttribute("username"); // GitLab 기준
-        }
 
-        System.out.println("Logged-in user: " + username + " (" + email + ")");
+        // ✅ 이메일로 userId 조회
+        Long userId = userService.findUserIdByEmail(email);
 
-        // 필요한 경우 사용자 식별 정보를 서비스로 넘겨 저장 시 사용할 수 있음
-        gitService.saveRepository(repoDto);
+        // 저장 시 userId 넘기기
+        gitService.saveRepository(repoDto, userId);
     }
 }

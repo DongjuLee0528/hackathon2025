@@ -21,15 +21,16 @@ public class GitServiceImpl implements GitService {
         return gitApiClient.fetchRepositories(provider, token);
     }
 
+    // ✅ userId를 매개변수로 받아 저장
     @Override
-    public void saveRepository(GitRepoDto dto) {
+    public void saveRepository(GitRepoDto dto, Long userId) {
         GitRepo repo = GitRepo.builder()
                 .name(dto.getName())
                 .url(dto.getUrl())
                 .owner(dto.getOwner())
                 .provider(dto.getProvider())
                 .description(dto.getDescription())
-                .userId(1L) // TODO: OAuth 연동 후 SecurityContext에서 로그인 유저 ID로 교체
+                .userId(userId)
                 .build();
         gitRepoRepository.save(repo);
     }
