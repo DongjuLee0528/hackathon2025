@@ -1,29 +1,32 @@
 package com.example.hackathonback.problem.controller;
 
-import com.example.hackathonback.problem.dto.JudgeRequestDto;
-import com.example.hackathonback.problem.dto.JudgeResponseDto;
+import com.example.hackathonback.problem.dto.ProblemGenerationRequestDto;
+import com.example.hackathonback.problem.dto.ProblemResponseDto;
+import com.example.hackathonback.problem.entity.Problem;
 import com.example.hackathonback.problem.service.ProblemService;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/problem")
+@RequiredArgsConstructor
 public class ProblemController {
 
     private final ProblemService problemService;
 
-    public ProblemController(ProblemService problemService) {
-        this.problemService = problemService;
-    }
+    @PostMapping("/generate")
+    public ResponseEntity<ProblemResponseDto> generate(@RequestBody ProblemGenerationRequestDto request) throws Exception {
+        Problem problem = problemService.generateProblem(request.getTag().name(), request.getDifficulty(), "java");
 
-    // 사용자 코드 제출 시 GPT를 통해 채점 요청
-    @PostMapping("/judge")
-    public ResponseEntity<JudgeResponseDto> judgeCode(@RequestBody JudgeRequestDto dto) throws JsonProcessingException {
-        JudgeResponseDto result = problemService.judgeCode(dto);
-        return ResponseEntity.ok(result);
+        ProblemResponseDto response = new ProblemResponseDto();
+        response.setTitle(problem.getTitle());
+        response.setDescription(problem.getDescription());
+        response.setInputFormat(problem.getInputFormat());
+        response.setOutputFormat(problem.getOutputFormat());
+        response.setExampleInput(problem.getExampleInput());
+        response.setExampleOutput(problem.getExampleOutput());
+
+        return ResponseEntity.ok(response);
     }
 }

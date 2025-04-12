@@ -4,8 +4,11 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Problem {
 
     @Id
@@ -14,10 +17,12 @@ public class Problem {
 
     private String title;
     private String description;
-    private String inputExample;
-    private String outputExample;
+    private String inputFormat;
+    private String outputFormat;
+    private String exampleInput;
+    private String exampleOutput;
+
     private String difficulty;
     private String tags;
-
-    private Long templateId; // 어떤 템플릿에서 만들어졌는지 추적용
+    private Long templateId;
 }
