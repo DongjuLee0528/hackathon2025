@@ -23,41 +23,29 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     public OAuth2User loadUser(OAuth2UserRequest userRequest) {
         OAuth2User oAuth2User = super.loadUser(userRequest);
 
-        String registrationId = userRequest.getClientRegistration().getRegistrationId(); // github or gitlab
-        String userNameAttributeName = userRequest.getClientRegistration()
-                .getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();
+        String registrationId = userRequest.getClientRegistration().getRegistrationId(); // 예: "github"
+        String email = (String) oAuth2User.getAttributes().get("email");
+        String username = (String) oAuth2User.getAttributes().get("name");
 
-        final String email;
-        final String username;
-
-        if ("github".equals(registrationId)) {
-            email = oAuth2User.getAttribute("email");
-            username = oAuth2User.getAttribute("login");
-        } else if ("gitlab".equals(registrationId)) {
-            email = oAuth2User.getAttribute("email");
-            username = oAuth2User.getAttribute("username");
-        } else {
-            throw new IllegalArgumentException("지원하지 않는 OAuth 서비스입니다: " + registrationId);
+        // 이메일이 존재하지 않으면 예외 처리
+        if (email == null) {
+            throw new RuntimeException("GitHub 계정에 이메일이 존재하지 않습니다.");
         }
 
-        if (email == null || username == null) {
-            throw new IllegalArgumentException("OAuth 사용자 정보가 충분하지 않습니다.");
-        }
-
-        User user = userRepository.findByEmail(email)
-                .orElseGet(() -> {
-                    User newUser = User.builder()
-                            .email(email)
-                            .username(username)
-                            .provider(registrationId)
-                            .build();
-                    return userRepository.save(newUser);
-                });
+        // 기존 유저가 없으면 자동 회원가입 처리
+        userRepository.findByEmail(email).orElseGet(() ->
+            userRepository.save(User.builder()
+                    .email(email)
+                    .username(username)
+                    .provider(registrationId)
+                    .build()
+            )
+        );
 
         return new DefaultOAuth2User(
-                Collections.emptyList(),
-                oAuth2User.getAttributes(),
-                userNameAttributeName
+            Collections.singleton(() -> "ROLE_USER"),
+            oAuth2User.getAttributes(),
+            "id" // GitHub OAuth response 내 사용자 식별 키
         );
     }
 }
