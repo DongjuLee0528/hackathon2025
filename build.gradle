@@ -62,6 +62,8 @@ dependencies {
     testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    implementation 'com.squareup.okhttp3:okhttp:4.9.3'
 }
 
 dependencyManagement {
