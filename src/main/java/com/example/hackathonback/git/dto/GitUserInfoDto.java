@@ -1,14 +1,11 @@
 package com.example.hackathonback.git.dto;
 
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 
-@Getter
-@Setter
-@Data
+@Data // 모든 필드에 대해 Getter/Setter, toString, equals, hashCode, 생성자 등을 자동 생성
 public class GitUserInfoDto {
-    private String username;
-    private String email;
-    private String provider;
+
+    private String username;  // Git 사용자 이름 (로그인 ID 또는 닉네임)
+    private String email;     // Git 사용자 이메일
+    private String provider;  // OAuth 제공자 (예: github, gitlab 등)
 }

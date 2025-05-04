@@ -12,19 +12,18 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * 코드 리뷰를 위한 파일 업로드 및 텍스트 입력을 처리하는 컨트롤러 클래스입니다.
- * - 파일 업로드 (단일 파일 또는 zip 파일)
- * - 텍스트 입력
- * - zip 파일 압축 해제 및 코드 파일 추출
- * - 코드 파일 병합 및 코드 길이 초과 체크
- * - GPT 리뷰 요청
+ * 코드 리뷰를 위한 파일 업로드 및 텍스트 입력을 처리하는 컨트롤러
+ * - 단일 코드 파일, zip 파일 업로드
+ * - 텍스트 직접 입력
+ * - zip 파일 압축 해제 및 코드 파일 추출 (.java, .py, .js)
+ * - 파일 병합 및 길이 제한 확인 후 GPT 리뷰 요청
  */
 @RestController
 @RequestMapping("/review")
 public class ReviewController {
 
-    private static final int MAX_GPT_FILE_COUNT = 10; // GPT에 보낼 수 있는 최대 파일 개수
-    private static final int MAX_CODE_LENGTH = 20000; // 코드 최대 길이 제한 (문자 수)
+    private static final int MAX_GPT_FILE_COUNT = 10;     // 최대 허용 파일 수
+    private static final int MAX_CODE_LENGTH = 20000;     // GPT 요청 시 최대 코드 길이
 
     private final GptApiService gptApiService;
 
@@ -33,8 +32,7 @@ public class ReviewController {
     }
 
     /**
-     * 파일 업로드를 처리하는 메소드입니다.
-     * 단일 코드 파일 또는 zip 파일 업로드를 지원합니다.
+     * 파일 업로드 리뷰 요청 (단일 파일 또는 zip)
      */
     @PostMapping("/upload")
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
@@ -44,16 +42,18 @@ public class ReviewController {
 
         String filename = file.getOriginalFilename();
 
+        // zip 파일인 경우 zip 처리
         if (filename.endsWith(".zip")) {
             return handleZipFile(file);
         } else {
+            // 단일 코드 파일 처리
             String code = new String(file.getBytes(), StandardCharsets.UTF_8);
             return reviewCode(Collections.singletonList(code));
         }
     }
 
     /**
-     * 텍스트 입력을 통한 코드 리뷰 요청을 처리하는 메소드입니다.
+     * 텍스트 입력을 통한 리뷰 요청
      */
     @PostMapping("/upload/text")
     public ResponseEntity<String> uploadText(@RequestBody Map<String, String> request) {
@@ -67,7 +67,7 @@ public class ReviewController {
     }
 
     /**
-     * zip 파일을 처리하는 메소드입니다.
+     * zip 파일 내 코드 파일 추출 및 리뷰 요청 처리
      */
     private ResponseEntity<String> handleZipFile(MultipartFile zipFile) throws IOException {
         List<String> codeList = new ArrayList<>();
@@ -77,10 +77,12 @@ public class ReviewController {
             while ((entry = zis.getNextEntry()) != null) {
                 if (entry.isDirectory()) continue;
 
+                // 보안: 상대경로 탈출 방지
                 if (entry.getName().contains("..") || entry.getName().startsWith("/")) {
                     return ResponseEntity.badRequest().body("압축 파일에 잘못된 경로가 포함되어 있습니다.");
                 }
 
+                // 허용된 코드 파일 확장자만 처리
                 if (entry.getName().endsWith(".java") || entry.getName().endsWith(".py") || entry.getName().endsWith(".js")) {
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     byte[] buffer = new byte[1024];
@@ -102,21 +104,18 @@ public class ReviewController {
     }
 
     /**
-     * 코드 리스트를 검토하여 GPT에 리뷰 요청을 보냅니다.
+     * 코드 리스트를 병합하고 GPT에 리뷰 요청 전송
      */
     private ResponseEntity<String> reviewCode(List<String> codes) {
-        String mergedCode;
+        // 여러 파일 병합
+        String mergedCode = String.join("\n\n", codes);
 
-        if (codes.size() > MAX_GPT_FILE_COUNT) {
-            mergedCode = String.join("\n\n", codes);
-        } else {
-            mergedCode = String.join("\n\n", codes);
-        }
-
+        // 코드 길이 초과 시 에러 반환
         if (mergedCode.length() > MAX_CODE_LENGTH) {
             return ResponseEntity.badRequest().body("에러: 코드가 너무 깁니다. 파일 수를 줄여서 다시 업로드해주세요.");
         }
 
+        // GPT 코드 리뷰 요청
         gptApiService.requestCodeReview(mergedCode);
 
         return ResponseEntity.ok("코드 리뷰 요청 완료");
