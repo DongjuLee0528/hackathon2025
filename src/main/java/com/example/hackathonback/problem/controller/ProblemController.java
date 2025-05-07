@@ -1,8 +1,8 @@
 package com.example.hackathonback.problem.controller;
 
 import com.example.hackathonback.problem.dto.GptRecommendationRequestDto;
-import com.example.hackathonback.problem.dto.RecommendedProblemDto;
 import com.example.hackathonback.problem.dto.ProblemGenerationRequestDto;
+import com.example.hackathonback.problem.dto.RecommendedProblemDto;
 import com.example.hackathonback.problem.dto.ProblemResponseDto;
 import com.example.hackathonback.problem.entity.Problem;
 import com.example.hackathonback.problem.service.GptRecommendationService;
