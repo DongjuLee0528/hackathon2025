@@ -1,4 +1,3 @@
-
 package com.example.hackathonback.config;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,6 +17,13 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        String uri = request.getRequestURI();
+
+        // Swagger 관련 요청은 제한 없이 통과
+        if (uri.startsWith("/swagger-ui") || uri.startsWith("/v3/api-docs") || uri.startsWith("/swagger-resources") || uri.startsWith("/webjars") || uri.contains("favicon")) {
+            return true;
+        }
+
         String ip = request.getRemoteAddr();
         Instant now = Instant.now();
         Instant last = lastRequestTimes.getOrDefault(ip, Instant.EPOCH);

@@ -1,26 +1,26 @@
 package com.example.hackathonback.problem.dto;
 
 import com.example.hackathonback.problem.entity.ProblemTag;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * 문제 자동 생성 요청 시 사용되는 DTO
- * 기존: 난이도 + 주제 기반
- * 확장: 언어 + 문제 유형 기반 GPT 문제 생성을 위한 필드 추가
- */
 @Getter
 @Setter
 public class ProblemGenerationRequestDto {
 
     @NotNull(message = "난이도를 입력해주세요.")
+    @Schema(description = "문제 난이도 (예: EASY, MEDIUM, HARD)", example = "EASY")
     private String difficulty;
 
     @NotNull(message = "문제 주제를 선택해주세요.")
+    @Schema(description = "문제 태그", implementation = ProblemTag.class)
     private ProblemTag tag;
 
-    // GPT 문제 생성을 위한 필드 (프론트에서 선택할 경우 사용)
+    @Schema(description = "사용 언어", example = "JAVA")
     private String language;
+
+    @Schema(description = "문제 유형", example = "OUTPUT")
     private String problemType;
 }
