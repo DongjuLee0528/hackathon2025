@@ -12,7 +12,7 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-public class RepositoryEntity {
+public class Repository {
 
     @Id
     @GeneratedValue // 기본 키 자동 생성 (IDENTITY 전략 생략 시 DB 기본값 사용)

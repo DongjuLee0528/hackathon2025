@@ -1,8 +1,8 @@
 package com.example.hackathonback.repository.service;
 
 import com.example.hackathonback.repository.dto.RepositoryDto;
-import com.example.hackathonback.repository.entity.RepositoryEntity;
-import com.example.hackathonback.repository.repository.RepositoryRepository;
+import com.example.hackathonback.repository.entity.Repository;
+import com.example.hackathonback.repository.repository.RepositoryJpaRepository;
 import com.example.hackathonback.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,8 +14,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RepositoryService {
 
-    private final UserService userService;                   // 사용자 정보 조회 서비스
-    private final RepositoryRepository repositoryRepository; // 저장소 저장소 (JPA)
+    private final UserService userService;                         // 사용자 정보 조회 서비스
+    private final RepositoryJpaRepository repositoryRepository;    // 저장소 JPA 레포지토리
 
     /**
      * 사용자 이메일을 기반으로 저장소 등록
@@ -28,11 +28,11 @@ public class RepositoryService {
         Long userId = userService.findUserIdByEmail(email);
 
         // 저장소 엔티티 생성
-        RepositoryEntity repositoryEntity = new RepositoryEntity();
-        repositoryEntity.setName(repositoryDto.getName());
-        repositoryEntity.setUserId(userId);
+        Repository repository = new Repository();
+        repository.setName(repositoryDto.getName());
+        repository.setUserId(userId);
 
         // 저장소를 데이터베이스에 저장
-        repositoryRepository.save(repositoryEntity);
+        repositoryRepository.save(repository);
     }
 }
