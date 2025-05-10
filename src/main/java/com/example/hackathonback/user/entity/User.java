@@ -22,4 +22,9 @@ public class User {
     private String email;     // 사용자 이메일 (OAuth 기반)
     private String username;  // 사용자 이름 또는 닉네임
     private String provider;  // 로그인 제공자 (예: github, gitlab)
+
+    // ✅ 사용자 이름 갱신용 메서드 추가
+    public void updateUsername(String username) {
+        this.username = username;
+    }
 }
