@@ -14,4 +14,8 @@ public class GptRecommendationRequestDto {
 
     private int userScore;             // 사용자의 현재 점수 또는 등급 (ex: 0~500)
     private List<String> recentTags;   // 사용자가 최근에 푼 문제의 태그 목록
+
+    private String language;           // 선택한 언어
+    private String problemType;        // 선택한 문제 유형
+    private String difficulty;         // 선택한 난이도
 }
