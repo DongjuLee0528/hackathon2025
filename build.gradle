@@ -13,12 +13,6 @@ java {
     }
 }
 
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
-    }
-}
-
 repositories {
     mavenCentral()
 }
@@ -27,17 +21,23 @@ ext {
     set('springModulithVersion', "1.3.3")
 }
 
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
 dependencies {
-    // ✅ Spring 기본 스타터
+    // ✅ Spring 스타터
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
-    // ✅ OAuth2 Client 추가
+    // ✅ OAuth2 Client
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
-    // ✅ WebFlux (WebClient용)
+    // ✅ WebFlux
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
     // ✅ Spring Cloud OpenFeign
@@ -47,8 +47,8 @@ dependencies {
     implementation 'org.springframework.modulith:spring-modulith-starter-core'
     implementation 'org.springframework.modulith:spring-modulith-starter-jpa'
 
-    // ✅ 개발용 H2 DB
-    runtimeOnly 'com.h2database:h2'
+    // ✅ MySQL 드라이버
+    implementation 'mysql:mysql-connector-java:8.0.33'
 
     // ✅ 기타
     compileOnly 'org.projectlombok:lombok'
@@ -66,10 +66,10 @@ dependencies {
     // ✅ HTTP 클라이언트
     implementation 'com.squareup.okhttp3:okhttp:4.9.3'
 
-    // ✅ .env 파일 로딩용 dotenv 라이브러리
+    // ✅ .env 파일 로딩용
     implementation 'io.github.cdimascio:java-dotenv:5.2.2'
 
-    // ✅ Swagger (Springdoc OpenAPI 3.x)
+    // ✅ Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
 }
 
