@@ -10,30 +10,34 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
- * GPT를 통해 코딩 문제를 자동 생성하는 서비스
+ * [한 줄 요약] GPT를 통해 코딩 문제를 자동 생성하는 서비스 클래스
+ *
+ * 사용자 요청 정보(태그, 난이도, 언어)를 바탕으로 GPT에게 문제 생성을 요청하고,
+ * 응답받은 JSON 데이터를 파싱하여 Problem 엔티티로 반환합니다.
  */
 @Service
 @RequiredArgsConstructor
 public class ProblemService {
 
-    private final GptApiClient gptApiClient;
-    private final ObjectMapper objectMapper = new ObjectMapper(); // JSON 파싱용
+    private final GptApiClient gptApiClient; // [한 줄 요약] GPT와 통신하는 클라이언트
+    private final ObjectMapper objectMapper = new ObjectMapper(); // [한 줄 요약] JSON 응답 파싱용 객체
 
     /**
-     * GPT API를 통해 코딩 문제를 생성하고 Problem 엔티티로 매핑
+     * [한 줄 요약] GPT API를 통해 코딩 문제 생성 → Problem 엔티티로 매핑
      *
-     * @param tag 문제 주제 (예: DFS, 정렬 등)
-     * @param difficulty 난이도 (예: 초급, 중급, 고급)
-     * @param language 언어 (예: java, python)
-     * @return 생성된 Problem 객체
-     * @throws Exception JSON 파싱 실패 또는 GPT 응답 오류
+     * @param tag 문제 주제 (예: 정렬, DFS 등)
+     * @param difficulty 난이도 (예: EASY, MEDIUM, HARD 또는 초급, 중급, 고급)
+     * @param language 언어 (예: JAVA, PYTHON 등)
+     * @return Problem 객체
+     * @throws Exception GPT 응답 파싱 실패 또는 형식 오류
      */
     public Problem generateProblem(String tag, String difficulty, String language) throws Exception {
-        String prompt = buildPrompt(tag, difficulty, language);
-        String gptResponse = gptApiClient.getGptResponse(prompt);
+        String prompt = buildPrompt(tag, difficulty, language); // GPT에 보낼 프롬프트 구성
+        String gptResponse = gptApiClient.getGptResponse(prompt); // GPT API 호출
 
-        JsonNode json = objectMapper.readTree(gptResponse);
+        JsonNode json = objectMapper.readTree(gptResponse); // JSON 파싱
 
+        // [한 줄 요약] 파싱된 JSON 데이터를 기반으로 Problem 객체 생성
         Problem problem = new Problem();
         problem.setTitle(json.get("title").asText());
         problem.setDescription(json.get("description").asText());
@@ -41,14 +45,21 @@ public class ProblemService {
         problem.setOutputFormat(json.get("outputFormat").asText());
         problem.setExampleInput(json.get("exampleInput").asText());
         problem.setExampleOutput(json.get("exampleOutput").asText());
-        problem.setDifficulty(parseDifficulty(difficulty)); // ✅ enum으로 변환
-        problem.setTag(parseTag(tag));                      // ✅ enum으로 변환
+        problem.setDifficulty(parseDifficulty(difficulty)); // ✅ 난이도 문자열 → enum 변환
+        problem.setTag(parseTag(tag));                     // ✅ 태그 문자열 → enum 변환
 
         return problem;
     }
 
     /**
-     * GPT에게 보낼 문제 생성용 프롬프트 문자열 구성
+     * [한 줄 요약] GPT에게 보낼 문제 생성 프롬프트 구성
+     *
+     * 문제 구성 요소를 JSON 형식으로 설명하고, 주제/난이도/언어 정보를 포함합니다.
+     *
+     * @param tag 문제 주제
+     * @param difficulty 난이도
+     * @param language 사용 언어
+     * @return GPT 입력용 프롬프트 문자열
      */
     public String buildPrompt(String tag, String difficulty, String language) {
         return String.format("""
@@ -71,7 +82,12 @@ JSON 형식으로 응답해줘.
     }
 
     /**
-     * 문자열 난이도를 enum Difficulty로 변환
+     * [한 줄 요약] 문자열 난이도를 Difficulty enum으로 변환
+     *
+     * "초급"/"easy" → EASY, "중급"/"medium" → MEDIUM, "고급"/"hard" → HARD
+     *
+     * @param difficulty 문자열 난이도
+     * @return Difficulty enum
      */
     private Difficulty parseDifficulty(String difficulty) {
         return switch (difficulty.trim().toLowerCase()) {
@@ -83,7 +99,13 @@ JSON 형식으로 응답해줘.
     }
 
     /**
-     * 문자열 태그를 enum ProblemTag로 변환
+     * [한 줄 요약] 문자열 태그를 ProblemTag enum으로 변환
+     *
+     * 입력 문자열을 대문자로 변환하여 enum 값으로 매칭하며,
+     * 일치하지 않으면 예외 발생
+     *
+     * @param tag 문자열 태그
+     * @return ProblemTag enum
      */
     private ProblemTag parseTag(String tag) {
         try {
