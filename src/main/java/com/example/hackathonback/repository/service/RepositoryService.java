@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
- * 사용자 저장소 등록을 처리하는 서비스 클래스ㅇ
+ * 사용자 저장소 등록을 처리하는 서비스 클래스
  */
 @Service
 @RequiredArgsConstructor
