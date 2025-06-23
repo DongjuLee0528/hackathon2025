@@ -13,7 +13,7 @@ public class UserActivity {
     private Long id;
 
     private String userEmail; // [한 줄 요약] 활동을 수행한 사용자의 이메일
-    // 이 필드는 활동을 수행한 사용자를 식별하는 데 사용됩니다.
+    // 이 필드는 활동을 수행한 사용자를 식별하는 데 사용됩니다.ㅇ
 
     private String action; // [한 줄 요약] 활동 종류 (예: SUBMIT, GRADE_CHANGE, LOGIN 등)
     // 사용자가 수행한 행동의 종류를 나타냅니다.
