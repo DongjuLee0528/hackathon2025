@@ -47,7 +47,7 @@ dependencies {
     implementation 'org.springframework.modulith:spring-modulith-starter-core'
     implementation 'org.springframework.modulith:spring-modulith-starter-jpa'
 
-    // ✅ MySQL 드라이버
+    // ✅ MySQL 드라이버dd
     implementation 'mysql:mysql-connector-java:8.0.33'
 
     // ✅ 기타
