@@ -29,7 +29,7 @@ public class AnalysisReportController {
     public List<AnalysisReport> getAllReports() {
         return service.findAllReports();
     }
-
+//ㅇㅇ
     /**
      * 특정 ID의 분석 리포트를 조회하는 GET 요청 핸들러
      * GET /api/reports/{id}
