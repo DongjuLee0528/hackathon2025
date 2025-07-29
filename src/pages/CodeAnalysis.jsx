@@ -1,7 +1,7 @@
 import React from 'react'
 import styled from 'styled-components'
 
-function Home() {
+function CodeAnalysis() {
   return (
     <Container>
       <Title>홈페이지에 오신 걸 환영합니다 👋</Title>
@@ -12,3 +12,6 @@ function Home() {
     </Container>
   )
 }
+
+export default CodeAnalysis;
+
