@@ -1,19 +1,6 @@
 import React from 'react'
 import styled from 'styled-components'
 
-function Home() {
-  return (
-    <Container>
-      <Title>홈페이지에 오신 걸 환영합니다 👋</Title>
-      <Description>이 사이트는 Vite + React + Styled Components 기반입니다.</Description>
-      <StartButton onClick={() => alert('시작합니다! 🚀')}>
-        시작하기
-      </StartButton>
-    </Container>
-  )
-}
-
-export default Home
 
 // 👇 Styled-Components 아래쪽에 같이 정의함
 const Container = styled.div`
@@ -54,3 +41,19 @@ const StartButton = styled.button`
     background-color: #3a4ce0;
   }
 `
+
+
+function Home() {
+  return (
+    <Container>
+      <Title>홈페이지에 오신 걸 환영합니다 👋</Title>
+      <Description>이 사이트는 Vite + React + Styled Components 기반입니다.</Description>
+      <StartButton onClick={() => alert('시작합니다! 🚀')}>
+        시작하기 
+      </StartButton>
+    </Container>
+  )
+}
+
+export default Home
+

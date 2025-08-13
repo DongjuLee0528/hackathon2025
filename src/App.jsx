@@ -9,8 +9,6 @@ import CodeAnalysis from './pages/CodeAnalysis';
 import CodeRefactoring from './pages/CodeRefactoring';
 import CodeProblem from './pages/CodeProblem';
 
-// 전역 CSS 파일 import
-import './App.css';
 
 // App 컴포넌트 정의
 function App() {
