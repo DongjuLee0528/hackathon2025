@@ -36,3 +36,4 @@ public class UserActivity {
         this.timestamp = LocalDateTime.now(); // 활동 시각 초기화
     }
 }
+// 김도희 바보
