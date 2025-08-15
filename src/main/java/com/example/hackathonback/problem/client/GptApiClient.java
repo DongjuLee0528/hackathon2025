@@ -1,56 +1,147 @@
 package com.example.hackathonback.problem.client;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 /**
  * OpenAI GPT API에 요청을 보내는 클라이언트 컴포넌트
+ * - HTTPS 기본
+ * - 타임아웃/에러 핸들링 강화
+ * - 환경변수/설정 주입(@Value)로 키/모델 관리
  */
 @Component
 public class GptApiClient {
 
-    // 환경 변수에서 API 키 및 모델명 가져오기
-    private final String apiKey = System.getenv("GPT_PROBLEM_KEY");
-    private final String model = System.getenv("GPT_PROBLEM_MODEL");
+    private final RestTemplate restTemplate;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    /** OpenAI API 키 (환경변수 또는 application.yml) */
+    private final String apiKey;
+
+    /** 사용할 모델명 (환경변수 또는 application.yml) */
+    private final String model;
+
+    /** OpenAI Base URL (필요 시 프록시/게이트웨이로 교체 가능) */
+    private final String baseUrl;
+
+    public GptApiClient(
+            RestTemplateBuilder builder,
+            @Value("${gpt.problem.key:${GPT_PROBLEM_KEY:}}") String apiKey,
+            @Value("${gpt.problem.model:${GPT_PROBLEM_MODEL:gpt-4o-mini}}") String model,
+            @Value("${gpt.base-url:https://api.openai.com}") String baseUrl
+    ) {
+        this.apiKey = apiKey;
+        this.model  = model;
+        this.baseUrl = trimTrailingSlash(baseUrl);
+
+        // 네트워크 안정성 확보: 연결/읽기 타임아웃
+        this.restTemplate = builder
+                .setConnectTimeout(Duration.ofSeconds(10))
+                .setReadTimeout(Duration.ofSeconds(20))
+                .build();
+    }
 
     /**
      * GPT에게 사용자 프롬프트를 전송하고 응답 내용을 반환
      *
      * @param prompt 사용자 질문 또는 요청 메시지
-     * @return GPT 응답 내용 (String)
+     * @return GPT 응답 텍스트
      */
     public String getGptResponse(String prompt) {
-        // HTTP 요청 헤더 설정
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(apiKey); // Authorization: Bearer {API_KEY}
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (isBlank(prompt)) {
+            throw new IllegalArgumentException("prompt는 비어 있을 수 없습니다.");
+        }
+        if (isBlank(apiKey)) {
+            throw new IllegalStateException("OpenAI API 키가 설정되지 않았습니다. (gpt.problem.key / GPT_PROBLEM_KEY)");
+        }
+        if (isBlank(model)) {
+            throw new IllegalStateException("모델명이 설정되지 않았습니다. (gpt.problem.model / GPT_PROBLEM_MODEL)");
+        }
 
-        // 요청 본문 구성 (ChatGPT 메시지 형식)
+        // 요청 헤더
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(apiKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+
+        // 요청 본문 (Chat Completions)
         Map<String, Object> body = Map.of(
                 "model", model,
-                "messages", List.of(Map.of("role", "user", "content", prompt)), // 사용자 메시지 구성
-                "temperature", 0.7 // 응답 다양성 제어
+                "messages", List.of(Map.of("role", "user", "content", prompt)),
+                "temperature", 0.7
         );
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
-        // GPT API 호출 (POST /v1/chat/completions)
-        ResponseEntity<Map> response = restTemplate.postForEntity(
-                "https://api.openai.com/v1/chat/completions",
-                request,
-                Map.class
-        );
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                    baseUrl + "/v1/chat/completions",
+                    request,
+                    Map.class
+            );
 
-        // 응답에서 첫 번째 메시지의 "content" 추출
-        Map choice = (Map) ((List) response.getBody().get("choices")).get(0);
-        Map message = (Map) choice.get("message");
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                throw new IllegalStateException("OpenAI 응답이 비정상입니다: " + response.getStatusCode());
+            }
 
-        return (String) message.get("content"); // 사용자에게 반환할 응답 내용
+            // 응답 파싱 (choices[0].message.content)
+            Object choicesObj = response.getBody().get("choices");
+            if (!(choicesObj instanceof List<?> choices) || choices.isEmpty()) {
+                throw new IllegalStateException("OpenAI 응답에 choices가 없습니다.");
+            }
+            Object first = choices.get(0);
+            if (!(first instanceof Map<?,?> firstMap)) {
+                throw new IllegalStateException("OpenAI 응답 형식이 올바르지 않습니다.(choice)");
+            }
+            Object messageObj = firstMap.get("message");
+            if (!(messageObj instanceof Map<?,?> msgMap)) {
+                throw new IllegalStateException("OpenAI 응답 형식이 올바르지 않습니다.(message)");
+            }
+            Object contentObj = msgMap.get("content");
+            String content = contentObj == null ? "" : contentObj.toString();
+
+            if (content.isBlank()) {
+                throw new IllegalStateException("OpenAI 응답 content가 비어 있습니다.");
+            }
+            return content;
+
+        } catch (RestClientResponseException e) {
+            // 4xx/5xx: 응답 본문 포함
+            String bodyText = e.getResponseBodyAsString();
+            throw new IllegalStateException(
+                    "OpenAI API 호출 실패 (" + e.getRawStatusCode() + "): " + (bodyText == null ? "" : truncate(bodyText, 600)),
+                    e
+            );
+        } catch (ResourceAccessException e) {
+            // 타임아웃/네트워크
+            throw new IllegalStateException("OpenAI API 네트워크 오류/타임아웃", e);
+        } catch (Exception e) {
+            // 기타
+            throw new IllegalStateException("OpenAI API 호출 중 알 수 없는 오류", e);
+        }
+    }
+
+    /* ---------- 내부 유틸 ---------- */
+
+    private boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
+
+    private String trimTrailingSlash(String base) {
+        if (base == null) return "";
+        return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+    }
+
+    private String truncate(String s, int max) {
+        if (s == null) return "";
+        return s.length() <= max ? s : s.substring(0, max) + "...";
     }
 }

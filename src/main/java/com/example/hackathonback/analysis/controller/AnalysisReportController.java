@@ -2,11 +2,10 @@ package com.example.hackathonback.analysis.controller;
 
 import com.example.hackathonback.analysis.entity.AnalysisReport;
 import com.example.hackathonback.analysis.service.AnalysisReportService;
+import jakarta.validation.constraints.Positive;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -25,9 +24,10 @@ public class AnalysisReportController {
      * 모든 분석 리포트를 조회하는 GET 요청 핸들러
      * GET /api/reports
      */
-    @GetMapping
-    public List<AnalysisReport> getAllReports() {
-        return service.findAllReports();
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<AnalysisReport>> getAllReports() {
+        List<AnalysisReport> reports = service.findAllReports();
+        return ResponseEntity.ok(reports);
     }
 
     /**
@@ -36,8 +36,8 @@ public class AnalysisReportController {
      * @param id 조회할 리포트의 ID
      * @return 해당 ID의 리포트가 존재하면 OK(200)와 함께 반환, 없으면 404 Not Found
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<AnalysisReport> getReportById(@PathVariable Long id) {
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<AnalysisReport> getReportById(@PathVariable @Positive Long id) {
         return service.findReportById(id)
                 .map(ResponseEntity::ok) // 리포트가 존재하면 200 OK 반환
                 .orElse(ResponseEntity.notFound().build()); // 존재하지 않으면 404 Not Found 반환

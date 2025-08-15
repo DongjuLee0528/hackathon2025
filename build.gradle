@@ -34,11 +34,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
+    // ✅ WebFlux (WebClient 용)
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'io.projectreactor.netty:reactor-netty-http'   // ← 타임아웃/커넥터 사용 시 명시
+
     // ✅ OAuth2 Client
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
-
-    // ✅ WebFlux
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
     // ✅ Spring Cloud OpenFeign
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
@@ -47,8 +48,8 @@ dependencies {
     implementation 'org.springframework.modulith:spring-modulith-starter-core'
     implementation 'org.springframework.modulith:spring-modulith-starter-jpa'
 
-    // ✅ MySQL 드라이버dd
-    implementation 'mysql:mysql-connector-java:8.0.33'
+    // ✅ MySQL 드라이버 (올바른 groupId)
+    implementation 'com.mysql:mysql-connector-j:8.4.0'
 
     // ✅ 기타
     compileOnly 'org.projectlombok:lombok'
@@ -63,19 +64,19 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    // ✅ HTTP 클라이언트
+    // ✅ HTTP 클라이언트(선택)
     implementation 'com.squareup.okhttp3:okhttp:4.9.3'
 
-    // ✅ .env 파일 로딩용
+    // ✅ .env 파일 로딩(선택)
     implementation 'io.github.cdimascio:java-dotenv:5.2.2'
 
-    // ✅ Swagger
+    // ✅ Swagger (MVC 기준)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
 }
 
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2023.0.1"
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2023.0.3"  // ← 호환 버전
         mavenBom "org.springframework.modulith:spring-modulith-bom:${springModulithVersion}"
     }
 }

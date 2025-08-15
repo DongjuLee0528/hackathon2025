@@ -2,81 +2,111 @@ package com.example.hackathonback.git.client;
 
 import com.example.hackathonback.git.dto.GitRepoDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.List;
 
-@Component // [한 줄 요약] GitHub/GitLab API를 호출해 사용자 리포지토리를 조회하는 클라이언트
-// 이 컴포넌트는 WebClient를 통해 Git API를 호출하고, 사용자의 저장소 목록을 가져오는 역할을 합니다.
-@RequiredArgsConstructor // [한 줄 요약] final 필드 주입을 위한 생성자 자동 생성 (DI 용도)
+@Component // GitHub/GitLab API를 호출해 사용자 리포지토리를 조회하는 클라이언트
+@RequiredArgsConstructor
 public class GitApiClient {
 
-    private final WebClient.Builder webClientBuilder; // [한 줄 요약] WebClient 인스턴스 생성을 위한 빌더
+    private final WebClient.Builder webClientBuilder;
 
-    /**
-     * [한 줄 요약] GitHub 또는 GitLab에서 사용자 리포지토리 목록을 조회
-     *
-     * provider 파라미터에 따라 GitHub 또는 GitLab API를 호출하여 해당 사용자의 리포지토리를 가져옵니다.
-     *
-     * @param provider "github" 또는 "gitlab"
-     * @param token OAuth 액세스 토큰
-     * @return GitRepoDto 객체 리스트 (사용자 리포지토리 정보)
-     */
+    @Value("${app.github.base-url:https://api.github.com}")
+    private String githubBaseUrl;
+
+    @Value("${app.gitlab.base-url:https://gitlab.com/api/v4}")
+    private String gitlabBaseUrl;
+
+    /** provider 별로 사용자 리포지토리 목록 조회 */
     public List<GitRepoDto> fetchRepositories(String provider, String token) {
+        if (isBlank(provider)) {
+            throw new IllegalArgumentException("provider는 필수입니다. (github|gitlab)");
+        }
+        if (isBlank(token)) {
+            throw new IllegalArgumentException("OAuth 액세스 토큰이 누락되었습니다.");
+        }
+
         if ("github".equalsIgnoreCase(provider)) {
             return fetchFromGitHub(token);
         } else if ("gitlab".equalsIgnoreCase(provider)) {
             return fetchFromGitLab(token);
         }
-        throw new IllegalArgumentException("지원하지 않는 provider: " + provider); // 잘못된 provider 처리
+        throw new IllegalArgumentException("지원하지 않는 provider: " + provider);
     }
 
-    /**
-     * [한 줄 요약] GitHub API를 호출하여 사용자 리포지토리 목록 조회
-     *
-     * GitHub OAuth 토큰을 Authorization 헤더에 포함시켜 인증하고,
-     * `/user/repos` 엔드포인트에서 사용자의 리포지토리 정보를 가져옵니다.
-     *
-     * @param token GitHub OAuth 액세스 토큰
-     * @return GitRepoDto 리스트
-     */
+    /** GitHub: /user/repos (OAuth Bearer) */
     private List<GitRepoDto> fetchFromGitHub(String token) {
-        return webClientBuilder.build()
-                .get()
-                .uri("https://api.github.com/user/repos") // GitHub API URL
-                .headers(h -> h.setBearerAuth(token)) // Bearer 토큰 헤더 추가
-                .retrieve() // HTTP 요청 실행
-                .onStatus(
-                        status -> status.isError(), // 오류 응답 처리
-                        response -> response.bodyToMono(String.class).map(RuntimeException::new)
-                )
-                .bodyToFlux(GitRepoDto.class) // 응답을 Flux<GitRepoDto>로 변환
-                .collectList() // Flux를 List로 변환
-                .block(); // 동기 방식으로 결과 대기
+        WebClient client = webClientBuilder
+                .baseUrl(trimSlash(githubBaseUrl))
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.USER_AGENT, "hackathon2025-backend")
+                .build();
+
+        // per_page=100로 최대한 많이 받아오고, 필요 시 추가 페이징은 이후 확장
+        return client.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/user/repos")
+                        .queryParam("per_page", 100)
+                        .build())
+                .headers(h -> h.setBearerAuth(token))
+                .exchangeToMono(this::handleAsList)
+                .timeout(Duration.ofSeconds(10))
+                .block();
     }
 
-    /**
-     * [한 줄 요약] GitLab API를 호출하여 사용자 리포지토리 목록 조회
-     *
-     * GitLab OAuth 토큰을 Bearer 인증 방식으로 보내고,
-     * `projects?membership=true` 엔드포인트를 통해 리포지토리를 가져옵니다.
-     *
-     * @param token GitLab OAuth 액세스 토큰
-     * @return GitRepoDto 리스트
-     */
+    /** GitLab: /projects?membership=true (OAuth Bearer) */
     private List<GitRepoDto> fetchFromGitLab(String token) {
-        return webClientBuilder.build()
-                .get()
-                .uri("https://gitlab.com/api/v4/projects?membership=true") // GitLab API URL
-                .headers(h -> h.setBearerAuth(token)) // 인증 토큰 설정
-                .retrieve()
-                .onStatus(
-                        status -> status.isError(), // 에러 상태 처리
-                        response -> response.bodyToMono(String.class).map(RuntimeException::new)
-                )
-                .bodyToFlux(GitRepoDto.class)
-                .collectList()
+        WebClient client = webClientBuilder
+                .baseUrl(trimSlash(gitlabBaseUrl))
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+
+        return client.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/projects")
+                        .queryParam("membership", true)
+                        .queryParam("per_page", 100)
+                        .build())
+                .headers(h -> h.setBearerAuth(token))
+                .exchangeToMono(this::handleAsList)
+                .timeout(Duration.ofSeconds(10))
                 .block();
+    }
+
+    /* ---------- 공통 처리 ---------- */
+
+    private Mono<List<GitRepoDto>> handleAsList(ClientResponse response) {
+        if (response.statusCode().is2xxSuccessful()) {
+            return response.bodyToFlux(GitRepoDto.class).collectList();
+        }
+        return response.bodyToMono(String.class)
+                .defaultIfEmpty("")
+                .flatMap(body ->
+                        Mono.error(new IllegalStateException(
+                                "Upstream API 오류: " + response.statusCode().value() + " " + response.statusCode()
+                                        + (body.isBlank() ? "" : " - " + truncate(body, 500))
+                        )));
+    }
+
+    private boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
+
+    private String trimSlash(String base) {
+        if (base == null) return "";
+        return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+    }
+
+    private String truncate(String s, int max) {
+        if (s == null) return "";
+        return s.length() <= max ? s : s.substring(0, max) + "...";
     }
 }
