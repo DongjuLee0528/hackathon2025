@@ -13,10 +13,9 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 import java.util.List;
 
-@Component // GitHub/GitLab API를 호출해 사용자 리포지토리를 조회하는 클라이언트
+@Component
 @RequiredArgsConstructor
 public class GitApiClient {
-
     private final WebClient.Builder webClientBuilder;
 
     @Value("${app.github.base-url:https://api.github.com}")
@@ -50,7 +49,6 @@ public class GitApiClient {
                 .defaultHeader(HttpHeaders.USER_AGENT, "hackathon2025-backend")
                 .build();
 
-        // per_page=100로 최대한 많이 받아오고, 필요 시 추가 페이징은 이후 확장
         return client.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/user/repos")
@@ -109,4 +107,5 @@ public class GitApiClient {
         if (s == null) return "";
         return s.length() <= max ? s : s.substring(0, max) + "...";
     }
+
 }

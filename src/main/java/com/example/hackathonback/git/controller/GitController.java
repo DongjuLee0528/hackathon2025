@@ -3,38 +3,36 @@ package com.example.hackathonback.git.controller;
 import com.example.hackathonback.git.dto.GitRepoDto;
 import com.example.hackathonback.git.service.GitService;
 import com.example.hackathonback.user.service.UserService;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.constraints.Pattern;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-@RestController // Git 관련 요청을 처리하는 REST API 컨트롤러
+@RestController
 @RequestMapping("/api/git")
-@RequiredArgsConstructor // 생성자 주입 자동 생성 (GitService, UserService)
+@RequiredArgsConstructor
 @Validated
 @CrossOrigin(
         origins = {"https://emojournal.djloghub.com"},
         allowCredentials = "true"
 )
 public class GitController {
+    private final GitService gitService;
+    private final UserService userService;
 
-    private final GitService gitService;   // Git 리포지토리 관련 비즈니스 로직
-    private final UserService userService; // 사용자 정보 조회용 서비스
-
-    /**
-     * 사용자의 Git 리포지토리 목록 조회
-     * 권장: 토큰은 Authorization: Bearer ... 로 전달 (쿼리 파라미터 token은 하위호환)
-     */
     @GetMapping(value = "/repos", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<GitRepoDto>> getUserRepos(
+    public ResponseEntity<?> getUserRepos(
             @RequestParam @Pattern(regexp = "github|gitlab", message = "provider must be 'github' or 'gitlab'") String provider,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization,
             @RequestParam(name = "token", required = false) String tokenFallback
@@ -43,47 +41,35 @@ public class GitController {
         if (token == null || token.isBlank()) token = tokenFallback;
 
         if (token == null || token.isBlank()) {
-            return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .build();
+            return badRequest("OAuth 액세스 토큰이 필요합니다.");
         }
 
         try {
             List<GitRepoDto> repos = gitService.getUserRepositories(provider, token);
             return ResponseEntity.ok(repos);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .build();
+            return badRequest(e.getMessage() == null ? "요청 파라미터가 올바르지 않습니다." : e.getMessage());
         } catch (Exception e) {
-            // 외부 API 오류/타임아웃 등
-            return ResponseEntity.status(502)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .build();
+            return upstreamError("외부 Git API 호출에 실패했습니다.");
         }
     }
 
-    /**
-     * 사용자가 선택한 Git 리포지토리 저장
-     * 현재 인증된 사용자의 이메일을 기준으로 사용자 식별 → 저장
-     */
-    @PostMapping(value = "/select", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Void> selectRepository(@RequestBody GitRepoDto repoDto) {
-        Authentication authentication = org.springframework.security.core.context.SecurityContextHolder
-                .getContext().getAuthentication();
+    @PostMapping(value = "/select", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> selectRepository(@RequestBody GitRepoDto repoDto) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(401).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(message("인증이 필요합니다."));
         }
 
         Object principal = authentication.getPrincipal();
         if (!(principal instanceof OAuth2User oauth2User)) {
-            return ResponseEntity.status(401).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(message("OAuth2 사용자만 허용됩니다."));
         }
 
         String email = oauth2User.getAttribute("email");
         if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().build();
+            return badRequest("이메일 정보를 확인할 수 없습니다.");
         }
 
         try {
@@ -91,13 +77,12 @@ public class GitController {
             gitService.saveRepository(repoDto, userId);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            return badRequest(e.getMessage() == null ? "요청 데이터가 올바르지 않습니다." : e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(500).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(message("서버 내부 오류가 발생했습니다."));
         }
     }
 
-    /** Authorization 헤더에서 Bearer 토큰 추출 */
     private String extractBearer(String authorizationHeader) {
         if (authorizationHeader == null) return null;
         String prefix = "Bearer ";
@@ -106,4 +91,23 @@ public class GitController {
         }
         return authorizationHeader.trim();
     }
+
+    private ResponseEntity<Map<String, String>> badRequest(String msg) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(message(msg));
+    }
+
+    private ResponseEntity<Map<String, String>> upstreamError(String msg) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(message(msg));
+    }
+
+    private Map<String, String> message(String msg) {
+        Map<String, String> m = new HashMap<>();
+        m.put("message", msg);
+        return m;
+    }
+
 }

@@ -2,6 +2,7 @@ package com.example.hackathonback.problem.client;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientResponseException;
@@ -13,24 +14,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * OpenAI GPT API에 요청을 보내는 클라이언트 컴포넌트
- * - HTTPS 기본
+ * OpenAI GPT API 클라이언트
+ * - Chat Completions 엔드포인트 호출
  * - 타임아웃/에러 핸들링 강화
- * - 환경변수/설정 주입(@Value)로 키/모델 관리
+ * - 환경변수/설정(@Value)로 키/모델/베이스URL 주입
  */
 @Component
 public class GptApiClient {
 
     private final RestTemplate restTemplate;
-
-    /** OpenAI API 키 (환경변수 또는 application.yml) */
-    private final String apiKey;
-
-    /** 사용할 모델명 (환경변수 또는 application.yml) */
-    private final String model;
-
-    /** OpenAI Base URL (필요 시 프록시/게이트웨이로 교체 가능) */
-    private final String baseUrl;
+    private final String apiKey;   // gpt.problem.key 또는 환경변수 GPT_PROBLEM_KEY
+    private final String model;    // gpt.problem.model 또는 환경변수 GPT_PROBLEM_MODEL
+    private final String baseUrl;  // gpt.base-url (기본 https://api.openai.com)
 
     public GptApiClient(
             RestTemplateBuilder builder,
@@ -39,10 +34,9 @@ public class GptApiClient {
             @Value("${gpt.base-url:https://api.openai.com}") String baseUrl
     ) {
         this.apiKey = apiKey;
-        this.model  = model;
+        this.model = model;
         this.baseUrl = trimTrailingSlash(baseUrl);
 
-        // 네트워크 안정성 확보: 연결/읽기 타임아웃
         this.restTemplate = builder
                 .setConnectTimeout(Duration.ofSeconds(10))
                 .setReadTimeout(Duration.ofSeconds(20))
@@ -50,10 +44,7 @@ public class GptApiClient {
     }
 
     /**
-     * GPT에게 사용자 프롬프트를 전송하고 응답 내용을 반환
-     *
-     * @param prompt 사용자 질문 또는 요청 메시지
-     * @return GPT 응답 텍스트
+     * 프롬프트를 보내고 응답 텍스트를 반환
      */
     public String getGptResponse(String prompt) {
         if (isBlank(prompt)) {
@@ -66,13 +57,14 @@ public class GptApiClient {
             throw new IllegalStateException("모델명이 설정되지 않았습니다. (gpt.problem.model / GPT_PROBLEM_MODEL)");
         }
 
-        // 요청 헤더
+        // 헤더
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(apiKey);
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.add(HttpHeaders.USER_AGENT, "hackathonBack/1.0");
 
-        // 요청 본문 (Chat Completions)
+        // 바디 (Chat Completions)
         Map<String, Object> body = Map.of(
                 "model", model,
                 "messages", List.of(Map.of("role", "user", "content", prompt)),
@@ -82,27 +74,28 @@ public class GptApiClient {
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
         try {
-            ResponseEntity<Map> response = restTemplate.postForEntity(
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     baseUrl + "/v1/chat/completions",
+                    HttpMethod.POST,
                     request,
-                    Map.class
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
             );
 
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
                 throw new IllegalStateException("OpenAI 응답이 비정상입니다: " + response.getStatusCode());
             }
 
-            // 응답 파싱 (choices[0].message.content)
+            // choices[0].message.content 추출
             Object choicesObj = response.getBody().get("choices");
             if (!(choicesObj instanceof List<?> choices) || choices.isEmpty()) {
                 throw new IllegalStateException("OpenAI 응답에 choices가 없습니다.");
             }
             Object first = choices.get(0);
-            if (!(first instanceof Map<?,?> firstMap)) {
+            if (!(first instanceof Map<?, ?> firstMap)) {
                 throw new IllegalStateException("OpenAI 응답 형식이 올바르지 않습니다.(choice)");
             }
             Object messageObj = firstMap.get("message");
-            if (!(messageObj instanceof Map<?,?> msgMap)) {
+            if (!(messageObj instanceof Map<?, ?> msgMap)) {
                 throw new IllegalStateException("OpenAI 응답 형식이 올바르지 않습니다.(message)");
             }
             Object contentObj = msgMap.get("content");
@@ -114,22 +107,21 @@ public class GptApiClient {
             return content;
 
         } catch (RestClientResponseException e) {
-            // 4xx/5xx: 응답 본문 포함
+            // 4xx/5xx 응답(본문 포함)
             String bodyText = e.getResponseBodyAsString();
             throw new IllegalStateException(
-                    "OpenAI API 호출 실패 (" + e.getRawStatusCode() + "): " + (bodyText == null ? "" : truncate(bodyText, 600)),
+                    "OpenAI API 호출 실패 (" + e.getRawStatusCode() + "): " + truncate(bodyText, 600),
                     e
             );
         } catch (ResourceAccessException e) {
-            // 타임아웃/네트워크
+            // 네트워크/타임아웃
             throw new IllegalStateException("OpenAI API 네트워크 오류/타임아웃", e);
         } catch (Exception e) {
-            // 기타
             throw new IllegalStateException("OpenAI API 호출 중 알 수 없는 오류", e);
         }
     }
 
-    /* ---------- 내부 유틸 ---------- */
+    /* ---------- 유틸 ---------- */
 
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();

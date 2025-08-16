@@ -15,21 +15,12 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-/**
- * GPT API를 이용하여 사용자 코드를 자동 채점하는 로직 클래스
- */
 @Component
 public class GptJudgeLogic {
 
-    /** OpenAI API 키 (env 또는 application.yml) */
     private final String apiKey;
-
-    /** 사용할 모델명 */
     private final String model;
-
-    /** OpenAI Base URL */
     private final String baseUrl;
-
     private final RestTemplate restTemplate;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -48,16 +39,7 @@ public class GptJudgeLogic {
                 .build();
     }
 
-    /**
-     * GPT에게 문제와 사용자 코드를 기반으로 채점 요청을 보냄
-     *
-     * @param problem 문제 설명 (텍스트)
-     * @param code 사용자 제출 코드
-     * @param lang 사용 언어 (예: java, python)
-     * @return GPT가 반환한 채점 결과 DTO
-     */
     public JudgeResponseDto sendJudgeRequest(String problem, String code, String lang) {
-        // 기본 검증
         if (isBlank(problem) || isBlank(code) || isBlank(lang)) {
             throw new IllegalArgumentException("problem/code/lang는 비어 있을 수 없습니다.");
         }
@@ -68,19 +50,17 @@ public class GptJudgeLogic {
             throw new IllegalStateException("모델명이 설정되지 않았습니다. (gpt.judge.model / GPT_JUDGE_MODEL)");
         }
 
-        String prompt = makePrompt(problem, code, lang); // GPT 프롬프트 생성
+        String prompt = makePrompt(problem, code, lang);
 
-        // 요청 헤더
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(apiKey);
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
-        // 요청 바디 (Chat Completions)
         Map<String, Object> body = Map.of(
                 "model", model,
                 "messages", List.of(Map.of("role", "user", "content", prompt)),
-                "temperature", 0.2 // 채점은 일관성이 중요 → 낮은 temperature 권장
+                "temperature", 0.2
         );
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
@@ -96,7 +76,6 @@ public class GptJudgeLogic {
                 throw new IllegalStateException("OpenAI 응답이 비정상입니다: " + response.getStatusCode());
             }
 
-            // 응답 JSON에서 choices[0].message.content 추출
             JsonNode root = mapper.readTree(response.getBody());
             JsonNode choices = nonNull(root.path("choices"), "choices가 없습니다.");
             if (!choices.isArray() || choices.isEmpty()) {
@@ -105,25 +84,14 @@ public class GptJudgeLogic {
             JsonNode message = nonNull(choices.get(0).path("message"), "message가 없습니다.");
             JsonNode contentNode = nonNull(message.path("content"), "content가 없습니다.");
 
-            // content는 일반적으로 "문자열(JSON 텍스트)" → 문자열을 다시 JSON으로 파싱
-            String contentText = contentNode.asText(); // ← *** 기존 코드의 핵심 버그 수정: content.toString() 사용 금지 ***
+            String contentText = contentNode.asText();
             JsonNode judged = mapper.readTree(contentText);
-
             JudgeResponseDto result = mapper.treeToValue(judged, JudgeResponseDto.class);
 
-            // 점수 범위 보정(0~100)
             if (result.getScore() < 0) result.setScore(0);
             if (result.getScore() > 100) result.setScore(100);
-
-            // 추천 코드 기본값
-            if (isBlank(result.getSuggestedCode())) {
-                result.setSuggestedCode("// 추천 코드 없음");
-            }
-
-            // 피드백 기본값
-            if (isBlank(result.getFeedback())) {
-                result.setFeedback("피드백이 비어 있습니다.");
-            }
+            if (isBlank(result.getSuggestedCode())) result.setSuggestedCode("// 추천 코드 없음");
+            if (isBlank(result.getFeedback())) result.setFeedback("피드백이 비어 있습니다.");
 
             return result;
 
@@ -140,10 +108,6 @@ public class GptJudgeLogic {
         }
     }
 
-    /**
-     * GPT에게 전달할 프롬프트 문자열 생성
-     * - 모델이 JSON으로 정확히 응답하도록 지시 포함
-     */
     private String makePrompt(String problem, String code, String lang) {
         return """
 다음은 문제와 사용자 코드입니다.
@@ -162,8 +126,6 @@ public class GptJudgeLogic {
 }
 """.formatted(problem, lang, code);
     }
-
-    /* ---------- 내부 유틸 ---------- */
 
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
