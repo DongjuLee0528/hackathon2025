@@ -2,34 +2,47 @@ package com.example.hackathonback.user.service;
 
 import com.example.hackathonback.user.entity.User;
 import com.example.hackathonback.user.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-/**
- * [한 줄 요약] 사용자 관련 비즈니스 로직을 처리하는 서비스 클래스
- *
- * 현재는 이메일 기반 사용자 ID 조회 기능을 제공하며,
- * 이후 사용자 정보 수정, 탈퇴, 프로필 조회 등의 로직이 확장될 수 있습니다.
- */
 @Service
-@RequiredArgsConstructor // [한 줄 요약] 생성자 주입 자동 생성 (userRepository)
+@RequiredArgsConstructor
 public class UserService {
 
-    private final UserRepository userRepository; // [한 줄 요약] 사용자 엔티티 조회를 위한 JPA 리포지토리
+    private final UserRepository userRepository;
 
-    /**
-     * [한 줄 요약] 이메일로 사용자 ID 조회
-     *
-     * 이메일을 기준으로 사용자 정보를 조회하고, 존재할 경우 사용자 ID를 반환합니다.
-     * 사용자가 존재하지 않으면 예외를 발생시켜 클라이언트에 오류 전달이 가능하도록 합니다.
-     *
-     * @param email 사용자 이메일
-     * @return 사용자 ID (Long)
-     * @throws IllegalArgumentException 해당 이메일의 사용자가 없을 경우
-     */
-    public Long findUserIdByEmail(String email) {
+    /** 이메일로 사용자 ID 조회 (조회 전용 트랜잭션) */
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public Long findUserIdByEmail(String rawEmail) {
+        String email = normalizeEmail(rawEmail);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("해당 이메일의 사용자를 찾을 수 없습니다: " + email));
         return user.getId();
+    }
+
+    /** [선택] GitHub OAuth 정보로 사용자 찾거나 생성 */
+    @Transactional
+    public User findOrCreateByGithub(Long githubId, String rawLogin, String rawName, String rawEmail, String avatarUrl) {
+        String email = normalizeEmail(rawEmail);
+        return userRepository.findByGithubId(githubId)
+                .or(() -> (email != null ? userRepository.findByEmail(email) : java.util.Optional.empty()))
+                .orElseGet(() -> {
+                    User u = new User();
+                    u.setGithubId(githubId);
+                    u.setEmail(email);
+                    u.setLogin(rawLogin);
+                    u.setName(rawName);
+                    u.setAvatarUrl(avatarUrl);
+                    // 기본 역할/상태 등 초기화 필요 시 여기서 설정
+                    return userRepository.save(u);
+                });
+    }
+
+    /** 공통: 이메일 정규화 */
+    private String normalizeEmail(String raw) {
+        if (raw == null) return null;
+        String e = raw.trim();
+        return e.isEmpty() ? null : e.toLowerCase();
     }
 }

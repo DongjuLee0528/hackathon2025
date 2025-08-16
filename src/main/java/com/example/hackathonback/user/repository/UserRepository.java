@@ -18,4 +18,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return 해당 이메일을 가진 사용자(Optional)
      */
     Optional<User> findByEmail(String email);
+
+    /**
+     * GitHub ID 기반으로 사용자 조회
+     *
+     * @param githubId GitHub 고유 ID
+     * @return 해당 GitHub ID를 가진 사용자(Optional)
+     */
+    Optional<User> findByGithubId(Long githubId);
 }

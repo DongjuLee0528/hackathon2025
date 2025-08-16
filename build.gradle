@@ -38,7 +38,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'io.projectreactor.netty:reactor-netty-http'   // ← 타임아웃/커넥터 사용 시 명시
 
-    // ✅ OAuth2 Client
+    // ✅ OAuth2 Client (GitHub 로그인)
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
     // ✅ Spring Cloud OpenFeign
@@ -48,8 +48,13 @@ dependencies {
     implementation 'org.springframework.modulith:spring-modulith-starter-core'
     implementation 'org.springframework.modulith:spring-modulith-starter-jpa'
 
-    // ✅ MySQL 드라이버 (올바른 groupId)
+    // ✅ MySQL 드라이버
     implementation 'com.mysql:mysql-connector-j:8.4.0'
+
+    // ✅ JWT (서버에서 자체 발급용)
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly   'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly   'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
     // ✅ 기타
     compileOnly 'org.projectlombok:lombok'

@@ -7,7 +7,11 @@ import lombok.*;
  * 사용자 정보를 저장하는 엔티티
  */
 @Entity
-@Table(name = "users") // "user"는 예약어일 수 있으므로 테이블 이름을 "users"로 지정
+@Table(name = "users",
+        indexes = {
+                @Index(name = "idx_users_email", columnList = "email", unique = true),
+                @Index(name = "idx_users_github_id", columnList = "githubId", unique = true)
+        })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,14 +20,33 @@ import lombok.*;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // 자동 증가 기본 키
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String email;     // 사용자 이메일 (OAuth 기반)
-    private String username;  // 사용자 이름 또는 닉네임
-    private String provider;  // 로그인 제공자 (예: github, gitlab)
+    /** 이메일 (GitHub에서 비공개면 null 가능) */
+    @Column(unique = true)
+    private String email;
 
-    // ✅ 사용자 이름 갱신용 메서드 추가
+    /** 닉네임/별칭 (기존 필드 유지) */
+    private String username;
+
+    /** 로그인 제공자: github, gitlab 등 */
+    private String provider;
+
+    /** GitHub 고유 ID (GitHub 연동 사용자만) */
+    @Column(unique = true)
+    private Long githubId;
+
+    /** GitHub 로그인 아이디(login) */
+    private String login;
+
+    /** 실명/프로필 이름(name) */
+    private String name;
+
+    /** 프로필 이미지 URL */
+    private String avatarUrl;
+
+    /** 사용자 이름 갱신 메서드(기존 유지) */
     public void updateUsername(String username) {
         this.username = username;
     }

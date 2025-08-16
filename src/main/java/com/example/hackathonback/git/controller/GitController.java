@@ -24,7 +24,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Validated
 @CrossOrigin(
-        origins = {"https://emojournal.djloghub.com"},
+        origins = {"https://thecoder.djloghub.com"},
         allowCredentials = "true"
 )
 public class GitController {
