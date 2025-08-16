@@ -41,7 +41,15 @@ const StartButton = styled.button`
     background-color: #3a4ce0;
   }
 `
-
+  const apipage = styled.button`
+    background-color: #4a5cff;
+  color: white;
+  padding: 0.8rem 1.6rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  `
 
 function Home() {
   return (

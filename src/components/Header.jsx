@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useEffect,useState  } from "react";
 import styled from "styled-components";
 import { Link } from "react-router-dom";
-
+import axios from "axios";
 // 🔷 전체 헤더를 감싸는 Wrapper
 const HeaderWrapper = styled.div`
   height: 70px;
@@ -130,8 +130,25 @@ const GitHubIcon = () => (
   </svg>
 );
 
+  
+
+
 // 🔷 Header 컴포넌트 정의
 export const Header = () => {
+  const [repos, setRepos] = useState([]);
+  useEffect(() => {
+    // 깃허브 api 호출
+      axios.get("http://thecoder.djloghub.com/login/oauth2/code/github")
+    .then(res=> {
+      setRepos(res.data);
+    })
+    .catch(err => console.error("에러:",err));
+  }, []);
+  
+  const handleGithubLogin = () => {
+    // 깃허브 로그인 창 주소
+    window.location.href = "https://thecoder.djloghub.com/oauth2/authorization/github";
+  };
   return (
     <HeaderWrapper>
       {/* 좌측 상단 로고 , homepage 이동*/}
@@ -151,7 +168,7 @@ export const Header = () => {
       </NavContainer>
 
       {/* 우측 GitHub 로그인 버튼 */}
-      <GitHubButton />
+      <GitHubButton onclick={handleGithubLogin}/>
       <GitHubButtonText>Git Hub 로그인</GitHubButtonText>
       <GitHubIconWrapper>
         <GitHubIcon />
