@@ -22,17 +22,20 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/swagger-ui/**", "/v3/api-docs/**",
                                 "/health", "/actuator/**",
-                                "/", "/index.html"
+                                "/", "/index.html",
+                                // 프런트 정적 경로 허용 필요 시 추가
+                                "/favicon.ico", "/assets/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth
-                        .userInfoEndpoint(user -> user.userService(customOAuth2UserService))
-                        .defaultSuccessUrl("https://thecoder.djloghub.com/oauth/success") // ✅ JWT 안 쓰고 바로 프론트로 이동
-                        .failureHandler(oAuth2FailureHandler) // 실패 시 실패 리다이렉트
+                        .userInfoEndpoint(u -> u.userService(customOAuth2UserService))
+                        .defaultSuccessUrl("/oauth/callback", true)
+                        .failureHandler(oAuth2FailureHandler)
                 )
                 .logout(logout -> logout
-                        .logoutSuccessUrl("/") // 필요 시 프론트 엔드포인트로 수정 가능
+                        // 필요시 프런트 루트로
+                        .logoutSuccessUrl("/")
                 );
 
         return http.build();
