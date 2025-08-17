@@ -82,7 +82,7 @@ public class GitController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(message("서버 내부 오류가 발생했습니다."));
         }
     }
-
+//ㅇㅇ
     private String extractBearer(String authorizationHeader) {
         if (authorizationHeader == null) return null;
         String prefix = "Bearer ";
