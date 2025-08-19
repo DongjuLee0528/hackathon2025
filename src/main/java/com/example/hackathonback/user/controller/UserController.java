@@ -4,7 +4,7 @@ import com.example.hackathonback.user.service.UserScoreService;
 import com.example.hackathonback.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,21 +21,26 @@ public class UserController {
     private final UserScoreService userScoreService;   // 점수 및 등급 관리 서비스
 
     /**
-     * 로그인한 사용자의 OAuth2 정보 반환
+     * 로그인한 사용자의 기본 정보 반환 (JWT 기반 인증)
      */
     @GetMapping("/user")
-    public String userInfo(@AuthenticationPrincipal OAuth2User principal) {
-        return "GitLab 사용자 이름: " + principal.getAttribute("name") + "<br>" +
-                "이메일: " + principal.getAttribute("email") + "<br>" +
-                "아이디: " + principal.getAttribute("username");
+    public String userInfo(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return "인증되지 않은 사용자입니다.";
+        }
+        String email = userDetails.getUsername(); // JwtTokenProvider 에서 username=email 로 세팅
+        return "로그인 사용자 이메일: " + email;
     }
 
     /**
      * 로그인한 사용자의 평균 점수 및 등급 반환
      */
     @GetMapping("/user/score")
-    public String getUserRank(@AuthenticationPrincipal OAuth2User principal) {
-        String email = principal.getAttribute("email");
+    public String getUserRank(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return "인증되지 않은 사용자입니다.";
+        }
+        String email = userDetails.getUsername();
 
         // 이메일로 사용자 ID 조회
         Long userId = userService.findUserIdByEmail(email);

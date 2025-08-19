@@ -1,85 +1,89 @@
 package com.example.hackathonback.jwt;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
 
-/**
- * JWT 토큰 생성 및 검증
- */
 @Component
 public class JwtTokenProvider {
 
-    private final Key key;
-    private final long accessTokenValidity;
-    private final long refreshTokenValidity;
+    @Value("${jwt.secret}")
+    private String secretKey;
 
-    public JwtTokenProvider(
-            @Value("${jwt.secret}") String secretKey,
-            @Value("${jwt.access-token-validity}") long accessTokenValidity,
-            @Value("${jwt.refresh-token-validity}") long refreshTokenValidity) {
+    @Value("${jwt.access-token-validity}")
+    private long accessTokenValidityInMs;
+
+    @Value("${jwt.refresh-token-validity}")
+    private long refreshTokenValidityInMs;
+
+    private Key key;
+
+    @PostConstruct
+    protected void init() {
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
-        this.accessTokenValidity = accessTokenValidity;
-        this.refreshTokenValidity = refreshTokenValidity;
     }
 
-    /** Access Token 생성 */
-    public String generateAccessToken(String email) {
+    /** ✅ Access Token 생성 */
+    public String createAccessToken(String userId) {
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + accessTokenValidity);
+        Date expiry = new Date(now.getTime() + accessTokenValidityInMs);
 
         return Jwts.builder()
-                .setSubject(email)
+                .setSubject(userId)
                 .setIssuedAt(now)
                 .setExpiration(expiry)
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    /** Refresh Token 생성 */
-    public String generateRefreshToken(String email) {
+    /** ✅ Refresh Token 생성 */
+    public String createRefreshToken(String userId) {
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + refreshTokenValidity);
+        Date expiry = new Date(now.getTime() + refreshTokenValidityInMs);
 
         return Jwts.builder()
-                .setSubject(email)
+                .setSubject(userId)
                 .setIssuedAt(now)
                 .setExpiration(expiry)
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    /** 토큰에서 사용자 이메일(subject) 추출 */
-    public String getUserEmail(String token) {
-        return parseClaims(token).getSubject();
-    }
-
-    /** 토큰 유효성 검사 */
+    /** ✅ 토큰 유효성 검사 */
     public boolean validateToken(String token) {
         try {
-            parseClaims(token);
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token);
             return true;
-        } catch (ExpiredJwtException e) {
-            System.out.println("만료된 토큰: " + e.getMessage());
-        } catch (Exception e) {
-            System.out.println("유효하지 않은 토큰: " + e.getMessage());
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
         }
-        return false;
     }
 
-    /** Claims 파싱 */
-    private Claims parseClaims(String token) {
-        return Jwts.parserBuilder()
+    /** ✅ 토큰에서 사용자 ID(이메일) 추출 */
+    public String getUserEmail(String token) {
+        Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+        return claims.getSubject(); // createAccessToken()에서 setSubject(userId) 로 저장됨
+    }
+
+    /** ✅ Access Token 유효시간 반환 */
+    public long getAccessTokenValidity() {
+        return accessTokenValidityInMs;
+    }
+
+    /** ✅ Refresh Token 유효시간 반환 */
+    public long getRefreshTokenValidity() {
+        return refreshTokenValidityInMs;
     }
 }

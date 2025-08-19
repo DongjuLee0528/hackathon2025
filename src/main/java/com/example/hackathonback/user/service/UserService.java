@@ -39,6 +39,13 @@ public class UserService {
                 });
     }
 
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public User loadUserByEmail(String rawEmail) {
+        String email = normalizeEmail(rawEmail);
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("해당 이메일의 사용자를 찾을 수 없습니다: " + email));
+    }
+
     /** 공통: 이메일 정규화 */
     private String normalizeEmail(String raw) {
         if (raw == null) return null;
