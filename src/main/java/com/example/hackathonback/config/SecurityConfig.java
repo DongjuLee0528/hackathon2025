@@ -23,7 +23,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(Customizer.withDefaults()) // ✅ CORS는 CorsConfig의 빈 사용
+                .cors(Customizer.withDefaults()) //
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/swagger-ui/**", "/v3/api-docs/**",
@@ -31,7 +31,7 @@ public class SecurityConfig {
                                 "/", "/index.html",
                                 "/favicon.ico", "/assets/**",
                                 "/oauth2/**", "/login/**",
-                                "/user" // 프론트 초기 세션확인용 허용
+                                "/user" // 세션 확인용
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -46,7 +46,15 @@ public class SecurityConfig {
                         })
                         .failureHandler(oAuth2FailureHandler)
                 )
-                .logout(logout -> logout.logoutSuccessUrl("/"));
+                .logout(logout -> logout
+                        .deleteCookies("JSESSIONID")
+                        .invalidateHttpSession(true)
+                        .logoutSuccessHandler((req, res, auth) -> {
+
+                            String target = frontendBase.endsWith("/") ? frontendBase : frontendBase + "/";
+                            res.sendRedirect(target);
+                        })
+                );
 
         return http.build();
     }
