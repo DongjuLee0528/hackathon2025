@@ -42,19 +42,19 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             return;
         }
 
-        //  사용자 식별자 추출 (email 우선, 없으면 GitHub id)
+        // 사용자 식별자 추출 (email 우선, 없으면 GitHub id)
         String email = oAuth2User.getAttribute("email");
         String userId = (email != null) ? email : oAuth2User.getName();
 
-        //  JWT 생성
+        // JWT 생성
         String accessToken = jwtTokenProvider.createAccessToken(userId);
         String refreshToken = jwtTokenProvider.createRefreshToken(userId);
 
-        //  HttpOnly 쿠키 저장
+        // HttpOnly 쿠키 저장
         addHttpOnlyCookie(response, "ACCESS_TOKEN", accessToken, (int) (jwtTokenProvider.getAccessTokenValidity() / 1000));
         addHttpOnlyCookie(response, "REFRESH_TOKEN", refreshToken, (int) (jwtTokenProvider.getRefreshTokenValidity() / 1000));
 
-        //  프론트엔드 리다이렉트
+        // 프론트엔드 리다이렉트
         String redirectUrl = frontendBase.endsWith("/")
                 ? frontendBase + "oauth/success"
                 : frontendBase + "/oauth/success";
@@ -67,6 +67,11 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         cookie.setSecure(true); // HTTPS 환경에서만 전송
         cookie.setPath("/");
         cookie.setMaxAge(maxAge);
-        response.addCookie(cookie);
+        // ★ 크로스 도메인 쿠키 허용을 위해 도메인/SameSite 설정
+        cookie.setDomain(".djloghub.com"); // 서브도메인 공통 사용 가능
+        response.addHeader("Set-Cookie", String.format(
+                "%s=%s; Max-Age=%d; Path=/; Domain=.djloghub.com; Secure; HttpOnly; SameSite=None",
+                name, value, maxAge
+        ));
     }
 }

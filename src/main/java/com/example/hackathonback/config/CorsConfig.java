@@ -36,15 +36,12 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true); // 쿠키/인증 정보 허용
 
-        //  패턴 기반 매칭(정확한 문자열도 OK). 예: https://*.djloghub.com, http://localhost:*
-        config.setAllowedOriginPatterns(allowedOrigins);
+        // ★ 정확한 오리진만 허용(와일드카드 금지). SameSite=None 쿠키 전송 시 필수
+        config.setAllowedOrigins(allowedOrigins);
 
         config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-
-        //  'Set-Cookie'는 브라우저에서 노출 금지 헤더라 의미 없음 → 제거
         config.setExposedHeaders(List.of("Authorization"));
-
         config.setMaxAge(3600L); // preflight 캐시(초)
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
