@@ -1,23 +1,34 @@
 package com.example.hackathonback.problem.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-/**
- * 사용자의 코드 제출 이력을 저장하는 엔티티
- */
+import java.time.LocalDateTime;
+
 @Entity
+@Getter @Setter
+@NoArgsConstructor
 public class CodeSubmission {
 
     @Id
-    @GeneratedValue // 기본 키 자동 생성 (auto-increment)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String userId;     // 제출한 사용자 ID
-    private String problemId;  // 해당 문제 ID (문제 식별용)
-    private String code;       // 제출한 코드 내용
-    private String result;     // GPT 또는 채점 결과 (전체 응답 저장 가능)
+    private String userId;
+    private String problemId;
 
-    // 생성자, getter/setter 필요 시 Lombok(@Getter, @Setter, @NoArgsConstructor 등) 사용 가능
+    @Lob
+    private String code;       // (수동 저장 시 사용)
+
+    @Lob
+    private String savedCode;  // judge/solve + saveRaw=true 일 때만 저장
+
+    private String codeHash;   // 원문 비저장 시 중복/추적용
+
+    @Lob
+    private String result;     // JudgeResponseDto JSON or 응답 원문
+
+    private LocalDateTime createdAt = LocalDateTime.now();
 }
