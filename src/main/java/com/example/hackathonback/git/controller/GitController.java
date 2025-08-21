@@ -23,11 +23,8 @@ import java.util.Map;
 @RequestMapping("/api/git")
 @RequiredArgsConstructor
 @Validated
-@CrossOrigin(
-        origins = {"https://thecoder.djloghub.com"},
-        allowCredentials = "true"
-)
 public class GitController {
+
     private final GitService gitService;
     private final UserService userService;
 
@@ -82,7 +79,7 @@ public class GitController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(message("서버 내부 오류가 발생했습니다."));
         }
     }
-//ㅇㅇ
+
     private String extractBearer(String authorizationHeader) {
         if (authorizationHeader == null) return null;
         String prefix = "Bearer ";
@@ -109,5 +106,4 @@ public class GitController {
         m.put("message", msg);
         return m;
     }
-
 }

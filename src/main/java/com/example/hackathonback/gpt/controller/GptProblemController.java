@@ -52,5 +52,4 @@ public class GptProblemController {
                     .body("문제 생성 처리 중 오류가 발생했습니다.");
         }
     }
-
 }

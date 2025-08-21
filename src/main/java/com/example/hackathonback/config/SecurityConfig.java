@@ -38,28 +38,38 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                // CORS 설정은 CorsConfig의 Bean을 사용 (중복 Bean 제거)
+                // 배포에서는 Nginx 동일 오리진이므로 별도 CORS 헤더 불필요하지만,
+                // 구성 일관성을 위해 cors()는 유지 (CorsConfigurationSource 미사용 시 기본 동작)
                 .cors(cors -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // preflight 허용
+                        // Preflight 허용
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // 공개 리소스
                         .requestMatchers(
                                 "/swagger-ui/**", "/v3/api-docs/**",
                                 "/health", "/actuator/**",
                                 "/", "/index.html",
                                 "/favicon.ico", "/assets/**",
-                                "/oauth2/**", "/login/**",
-                                "/user" // 로그인 상태 확인용
+                                "/oauth2/**", "/login/**"
                         ).permitAll()
+
+                        // 로그인 상태 확인/기본 사용자 조회 등 (B안: /api 하위로 통일)
+                        .requestMatchers("/api/user").permitAll()
+
+                        // 인증 필요 API들 (B안 경로로 통일)
                         .requestMatchers(
-                                "/judge/**",
-                                "/submissions/**",
+                                "/api/judge/**",
+                                "/api/submissions/**",
                                 "/api/gpt/review",
-                                "/problems/gpt-recommend",
+                                "/api/problem/problems/gpt-recommend",
                                 "/api/gpt/problem/generate",
-                                "/user/score"
+                                "/api/user/score"
                         ).authenticated()
+
+                        // 그 외는 기본적으로 인증 요구
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth

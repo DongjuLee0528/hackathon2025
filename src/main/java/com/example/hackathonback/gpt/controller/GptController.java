@@ -18,9 +18,9 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestController // REST API 컨트롤러 등록
-@RequestMapping("/api/gpt") // 기본 요청 경로
-@RequiredArgsConstructor // final 필드에 대해 생성자 자동 생성
+@RestController
+@RequestMapping("/api/gpt")
+@RequiredArgsConstructor
 @Validated
 public class GptController {
 
@@ -49,7 +49,6 @@ public class GptController {
             file.transferTo(tempFile.toFile());
 
             String gptResponse = gptReviewService.reviewCode(tempFile.toString());
-
             Map<String, String> parsed = GptResponseParser.parse(gptResponse);
 
             String beforeCode = parsed.getOrDefault("beforeCode", "");
@@ -109,5 +108,4 @@ public class GptController {
         body.put("message", message);
         return ResponseEntity.internalServerError().contentType(MediaType.APPLICATION_JSON).body(body);
     }
-
 }

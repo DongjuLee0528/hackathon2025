@@ -17,17 +17,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-@RestController // REST API 컨트롤러로 등록
-@RequestMapping("/api/problem") // 문제 관련 API 기본 경로
-@RequiredArgsConstructor // 생성자 자동 주입 (gptRecommendationService, problemService)
+@RestController
+@RequestMapping("/api/problem")
+@RequiredArgsConstructor
 public class ProblemController {
 
-    private final GptRecommendationService gptRecommendationService; // GPT 기반 추천 서비스
-    private final ProblemService problemService;                     // 문제 생성 및 조회 서비스
+    private final GptRecommendationService gptRecommendationService;
+    private final ProblemService problemService;
 
-    /**
-     * GPT를 기반으로 추천 문제 목록을 요청
-     */
     @PostMapping(
             value = "/problems/gpt-recommend",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -47,10 +44,6 @@ public class ProblemController {
         }
     }
 
-    /**
-     * GPT를 통해 문제를 자동 생성
-     * - 언어는 java 고정
-     */
     @PostMapping(
             value = "/generate",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -85,8 +78,6 @@ public class ProblemController {
         }
     }
 
-    /* ---------- 공통 응답 유틸 ---------- */
-
     private Map<String, Object> success(String message, Map<String, Object> data) {
         return Map.of(
                 "status", "success",
@@ -96,10 +87,7 @@ public class ProblemController {
     }
 
     private Map<String, Object> error(String message) {
-        return Map.of(
-                "status", "error",
-                "message", message
-        );
+        return Map.of("status", "error", "message", message);
     }
 
     private String nonNullMsg(Exception e, String fallback) {

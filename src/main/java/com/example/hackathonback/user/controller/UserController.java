@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/api/user")
 public class UserController {
 
     private final UserService userService;             // 사용자 ID 조회용
@@ -22,8 +24,9 @@ public class UserController {
 
     /**
      * 로그인한 사용자의 기본 정보 반환 (JWT 기반 인증)
+     * GET /api/user
      */
-    @GetMapping("/user")
+    @GetMapping
     public String userInfo(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
             return "인증되지 않은 사용자입니다.";
@@ -34,8 +37,9 @@ public class UserController {
 
     /**
      * 로그인한 사용자의 평균 점수 및 등급 반환
+     * GET /api/user/score
      */
-    @GetMapping("/user/score")
+    @GetMapping("/score")
     public String getUserRank(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
             return "인증되지 않은 사용자입니다.";

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/github")
 @Validated
 public class GitHubFetchController {
+
     private final GitHubFetchService gitHubFetchService;
 
     public GitHubFetchController(GitHubFetchService gitHubFetchService) {
@@ -66,5 +67,4 @@ public class GitHubFetchController {
         if (s == null) return "";
         return s.replace("\"", "\\\"");
     }
-
 }

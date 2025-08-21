@@ -13,21 +13,21 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/submissions")
+@RequestMapping("/api/submissions")
 @RequiredArgsConstructor
 @Validated
 public class SubmissionController {
 
     private final SubmissionService submissionService;
 
-    // [NEW] 제출 저장(수동 저장 API가 필요할 때 사용; judge/solve는 자동 저장)
+    // 제출 저장 (수동 저장이 필요할 때 사용)
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> createSubmission(@RequestBody CreateSubmissionDto dto) {
         submissionService.save(dto.userId(), dto.problemId(), dto.code(), dto.resultJson());
         return ResponseEntity.ok().build();
     }
 
-    // 기존: 특정 사용자 제출 이력 조회
+    // 특정 사용자 제출 이력 조회
     @GetMapping(value = "/{userId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<CodeSubmission>> getUserSubmissions(@PathVariable @NotBlank String userId) {
         List<CodeSubmission> items = submissionService.getSubmissionsByUserId(userId);
